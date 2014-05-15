@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Auction!</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script type="text/javascript" src='/socket.io/socket.io.js'></script>
+     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+     <script type="text/javascript">
+     	$(document).ready(function(){
+     		//instantiate the socket functionality
+     		io = io.connect()
+     		//get user info
+     		var name = prompt("what's your name?")
+     		var budget = prompt('how much money do you have, sucka?')
+
+     		//give info to server!
+     		var info = {name: name, budget: budget}
+     		io.emit('login_prompt', info);
+
+     		//make client listen for auctions
+     		io.on('give_items', function(data){
+     			console.log(data)
+     			for(auction in data)
+     			{
+     				$('#items').append("<div id='"+auction+"'><h2>"+ data[auction].name + "</h2><p>"+ data[auction].desc+"</p><h3>Price: <span class='price'>"+data[auction].price+"</span> Current winner: <span class='winner'></span></h3><h3>MAKE A BIG BID!</h3>$<input type='number'>"+"<button class='bid_button'>BID!</button></div>")
+     			}
+     		})
+
+     		//need to make sure that the dynamic content gets event handlers too!
+     		$(document).on('click', '.bid_button', function(){
+     			var new_bid =  $(this).siblings('input').val();
+     			var id = $(this).parent().attr('id');
+     			var bid_info = {amount: new_bid, id: id}
+     			io.emit('make_bid', bid_info)
+
+     		})
+
+     		io.on('new_max', function(data){
+     			$('#'+data.id+' .price').text(data.price)
+     			$('#'+data.id+' .winner').text(data.name)
+     		})
+
+     		io.on('you_suck', function(){
+     			alert('you need to bid higher, chump!')
+     		})
+
+     		$('#new_item_button').click(function(){
+     			var name = $('#item_name').val()
+     			var price = $('#item_price').val()
+     			var desc = $('#item_desc').val()
+     			io.emit('add_new_auction', {name: name, price: price, desc: desc})
+     		})
+
+     		io.on('new_item_added', function(auction){
+     			$('#items').append("<div id='"+auction.id+"'><h2>"+ auction.name + "</h2><p>"+ auction.desc+"</p><h3>Price: <span class='price'>"+auction.price+"</span> Current winner: <span class='winner'></span></h3><h3>MAKE A BIG BID!</h3>$<input type='number'>"+"<button class='bid_button'>BID!</button></div>")
+
+     		})
+     	})
+     </script>
+  </head>
+  <body>
+    <h1>WELCOME TO THE AWESOME AUCTION!</h1>
+    <div id='items'></div>
+    <h2>Make a new auction!</h2>
+    <div>
+    	Item name: <input type='text' id='item_name'>
+    	Price: <input type='number' id='item_price'>
+    	Description: <textarea id='item_desc'></textarea>
+    	<button id='new_item_button'>ADD YOUR ITEM!</button>
+    </div>
+  </body>
+</html>
